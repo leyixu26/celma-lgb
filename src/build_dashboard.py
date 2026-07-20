@@ -216,7 +216,12 @@ document.getElementById('nav').addEventListener('click', e=>{
 
 // ---- Latest
 const SCH = D.schedule; // [pub, issuer, period, gen, spec, refi, total, id]
-const latestPeriod = SCH.map(r=>r[2]).filter(Boolean).sort().at(-1);
+// headline month = latest period with >=3 issuers (a lone far-ahead early post
+// shouldn't displace the month the team actually cares about)
+const perCount = {};
+SCH.forEach(r=>{ if(r[2]) perCount[r[2]]=(perCount[r[2]]||0)+1; });
+const periodsDesc = Object.keys(perCount).sort().reverse();
+const latestPeriod = periodsDesc.find(p=>perCount[p]>=3) || periodsDesc[0];
 document.getElementById('latestTitle').textContent = latestPeriod + ' 发行安排（' +
   SCH.filter(r=>r[2]===latestPeriod).length + ' 省份已发布）';
 const SHEAD = '<tr><th>发布日期</th><th>省份</th><th>计划月份</th><th class="n">新增一般</th><th class="n">新增专项</th><th class="n">再融资</th><th class="n">合计</th></tr>';

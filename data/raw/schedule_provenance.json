@@ -1,8 +1,5 @@
 {
-  "name": "forward",
-  "channel": "192",
-  "site_total_tiao": 2150,
-  "scraped_unique": 2150,
-  "passes": 3,
+  "site_total_tiao": 2180,
+  "scraped_unique": 2180,
   "status": "COMPLETE"
 }
