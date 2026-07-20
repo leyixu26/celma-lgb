@@ -1,0 +1,9 @@
+# Python 3.11+
+httpx>=0.27           # HTTP client (JSON feed, article pages, GitHub API)
+pandas>=2.2           # tables & reconciliation
+lxml>=5.2             # HTML parser backend
+beautifulsoup4>=4.12  # article-list / article parsing
+pdfplumber>=0.11      # planned amounts inside schedule PDFs
+chinesecalendar>=1.9  # China working-day calendar (refresh annually)
+matplotlib>=3.9       # charts for the Excel workbook
+openpyxl>=3.1         # Excel export

@@ -1,0 +1,22 @@
+# Experiment: can GitHub-hosted runners reach celma at all? Expected to FAIL
+# (the platform's WAF drops non-China connections) — in which case refreshes
+# stay on the operator machine. If this ever starts passing, the scrape could
+# move fully into Actions. Manual trigger + monthly check; never blocks anything.
+name: connectivity-probe
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 2 3 * *"   # 03rd of each month, 02:17 UTC
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: probe celma endpoints
+        run: |
+          echo "probing list page …"
+          curl -sS -o /dev/null -w "list page: HTTP %{http_code} in %{time_total}s\n" \
+            --max-time 30 "https://www.celma.org.cn/zqsclb_1.jhtml?ad_code=87&channelId=192" || echo "list page: UNREACHABLE"
+          echo "probing JSON feed …"
+          curl -sS -o /dev/null -w "json feed: HTTP %{http_code} in %{time_total}s\n" \
+            --max-time 30 "https://www.governbond.org.cn:4443/api/loadBondData.action?dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" || echo "json feed: UNREACHABLE"

@@ -1,0 +1,40 @@
+{
+  "verified": true,
+  "as_of": "2026-06-16",
+  "run_date": "2026-07-20",
+  "realized_rows": 19480,
+  "schedule_rows": 2150,
+  "schedule_amount_rows": 2051,
+  "checks": [
+    {
+      "id": "R1",
+      "desc": "rows pulled == API total",
+      "ok": true,
+      "detail": "19487 vs 19487"
+    },
+    {
+      "id": "R2",
+      "desc": "raw amount sum ≈ API sumCount",
+      "ok": true,
+      "detail": "805,364.3 vs 805,362.9 亿"
+    },
+    {
+      "id": "R3",
+      "desc": "clean total ≈ API sumCount after dedup; 37 issuers",
+      "ok": true,
+      "detail": "19480 rows (7 dup/sum rows removed), 805,295.8 vs 805,362.9 亿, 37/37 issuers"
+    },
+    {
+      "id": "S1",
+      "desc": "unique articles == site 共N条",
+      "ok": true,
+      "detail": "2150 vs 共2150条 (COMPLETE)"
+    },
+    {
+      "id": "S2",
+      "desc": "37 issuers; amount coverage",
+      "ok": true,
+      "detail": "37/37 issuers; amounts on 2051/2150 plans (95.4%)"
+    }
+  ]
+}

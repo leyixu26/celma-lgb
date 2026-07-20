@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+token.txt
+# raw scrape caches are large; a zipped snapshot is attached to each GitHub release
+data/raw/realized_json/
+data/raw/schedule_articles/
