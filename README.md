@@ -23,16 +23,38 @@ no login, nothing to install.
 Verification proof for the current data: [`VERIFICATION.md`](VERIFICATION.md).
 Methodology, definitions, and findings: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
 
-## Headline findings (through 2026-06)
+## Headline findings (data through 2026-07-17)
 
-1. **Schedules are executed almost exactly** — 71% of scheduled issuer-months
-   issue within ±1% of the planned amount (median delivery ratio 1.00).
-2. **The risk is coverage/timing, not amounts** — only 53% of issuing months had
-   a schedule; 49% met the regulatory deadline; median lead 11 working days.
-3. **Usable as a national supply indicator since 2023** — scheduled amounts now
-   cover ~90% of realized issuance (vs 6% in 2019).
-4. **Provinces split sharply** — 吉林/山东/深圳/广西/贵州 schedules lead by
-   20–30 working days; 青岛/辽宁/天津/兵团/大连 post retroactively.
+| Question | Answer |
+|---|---|
+| Do provinces issue **what** they schedule? | **Yes, almost exactly** — median delivery ratio **1.00**; 70% of scheduled issuer-months execute within **±1%** of plan (77% within ±10%) |
+| Do they issue **when** they schedule? | The weak spot: only **53%** of issuing months had a schedule at all, **49%** met the regulatory deadline (20th of prior month), median lead **11 working days** |
+| Is the schedule usable as a **national supply indicator**? | **Since 2023, yes** — scheduled amounts cover **88–97%** of realized issuance (2023: 88% · 2024: 78% · 2025: 88% · 2026 YTD: **97%**), vs just 6% in 2019 |
+| Which provinces' schedules can you **trust**? | **Usable:** 山东, 吉林, 深圳, 广西, 贵州 (lead 20–34 wd, ~90%+ on time). **Not usable:** 青岛, 辽宁, 天津, 新疆兵团, 大连 (post retroactively — negative lead, ~0% on time) |
+
+**Bottom line:** the schedule is a *high-fidelity but incomplete* leading
+indicator — amounts are executed nearly verbatim, so its value hinges on
+existence and timing, which matured decisively from 2023 and varies sharply by
+province. Full analysis: [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md).
+
+## External validation vs Ministry of Finance
+
+Bottom-up per-deal totals cross-checked against MOF's official aggregates
+(details: [`docs/EXTERNAL_VALIDATION.md`](docs/EXTERNAL_VALIDATION.md)):
+
+| Series | Ours | MOF official | Diff |
+|---|---:|---:|---:|
+| 2025 FY refinancing | 49,282 亿 | 49,284 亿 | **−0.004%** |
+| 2025 FY new bonds | 53,633 亿 | 53,817 亿 | −0.34% |
+| 2025 FY total | 102,917 亿 | 103,101 亿 | −0.18% |
+| 2026 Jan new / refi | 4,285 / 4,349 亿 | 4,284.55 / 4,348.94 亿 | **exact (0.00%)** |
+| 2021 FY total | 74,898 亿 | 74,898 亿 | exact |
+| 2026 Q1 total | 32,777 亿 | 31,059 亿 | +5.5% ⚠ open item¹ |
+
+¹ Gap sits in Feb–Mar 2026 only; our side audited clean (zero duplicate bonds,
+completeness proven vs the platform's own totals) — likely MOF preliminary
+figures / 化债-related classification; being reconciled against MOF's monthly
+cumulative tables.
 
 ## Refresh (operator)
 
