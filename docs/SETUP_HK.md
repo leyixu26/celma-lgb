@@ -158,15 +158,22 @@ bare parameter-less probe; the real scraper sends fully-parameterized requests.)
 Timeout/proxy error = the proxy refuses CONNECT on 4443 → IT:
 *"allow proxy CONNECT to governbond.org.cn:4443 (MOF public bond-disclosure feed)."*
 
-**2b. Definitive test — run the actual production fetch through the proxy:**
+**2b. Definitive test — run the actual production fetch through the proxy.**
+Create `proxy.txt` first (step 3) — then no environment variables are needed
+(`import celma` reads it in any shell):
 ```bat
-set HTTPS_PROXY=http://HOST:PORT
-set HTTP_PROXY=http://HOST:PORT
+cd /d %USERPROFILE%\celma-lgb
 .venv\Scripts\python -c "import sys; sys.path.insert(0,'src'); import celma; c=celma.new_client(); d=celma.fetch_realized_page(c,1,5); print('total bonds on platform:', d.get('total'))"
 ```
-`total bonds on platform: 19xxx` = absolute proof — proceed to step 3. An HTTP
+Expected: `[celma] using proxy from proxy.txt: …` then
+`total bonds on platform: 19xxx` = absolute proof — run the pipeline. An HTTP
 `418` here would mean the platform's WAF is bot-flagging the proxy's exit
 (unlikely when the browser works through the same proxy) — report it.
+
+> **Shell trap:** `set HTTPS_PROXY=…` works only in **cmd** — in PowerShell
+> (prompt starts with `PS`) `set` silently does nothing and Python goes direct
+> (→ 10060 timeout). PowerShell syntax is `$env:HTTPS_PROXY="http://HOST:PORT"`;
+> in cmd, no spaces around `=`. `proxy.txt` sidesteps all of this — prefer it.
 
 **3. Lock in:** create `proxy.txt` in the project folder — exactly one line,
 `http://HOST:PORT` (with `USER:PASS@` if step 1 needed it). Save as type
