@@ -8,17 +8,19 @@ and github.com. No git, no VPN, no admin rights required.
 If a run is active, stop it first: click its window, **Ctrl+C**. Always safe —
 every fetched article is cached (writes are atomic), and re-runs resume.
 
-Paste into a PowerShell window (plain cmdlets only — they ride the system
-proxy natively, no login line needed; that also keeps them legal under
-Constrained Language Mode, which may apply even interactively. If a download
-fails with `(407)`, use the browser instead: open the raw URL, Ctrl+S, "Save
-as type" = All Files):
+**Update via browser ZIP (the reliable route):**
 
-```powershell
-Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
-Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_realized.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_realized.py"
-Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_schedule.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_schedule.py"
-```
+1. Browser → `https://github.com/leyixu26/celma-lgb` → **Code** → **Download
+   ZIP**.
+2. Open the ZIP → go *inside* `celma-lgb-main` → select all → copy → paste
+   into `%USERPROFILE%\celma-lgb` → **Replace all**. (Overwrite into the
+   folder; never delete the folder itself.)
+3. Sanity check — first line must be Python, not HTML:
+   ```powershell
+   Get-Content "$env:USERPROFILE\celma-lgb\src\scrape_realized.py" -TotalCount 1
+   ```
+   Expect `"""`. If you see `<html`, the file is a proxy block page — redo
+   via browser.
 
 Then run:
 
@@ -27,7 +29,13 @@ cd $env:USERPROFILE\celma-lgb
 .venv\Scripts\python run_all.py
 ```
 
-(This box always lists the latest files to update — no ZIP needed.)
+> **Why not PowerShell downloads?** Without proxy credentials (which
+> Constrained Language Mode blocks from being set), the proxy intercepts
+> `raw.githubusercontent.com` and serves its **HTML block page with status
+> 200** — `Invoke-WebRequest` "succeeds" and saves garbage over the .py file.
+> The symptom afterwards is `SyntaxError: unterminated string literal` in a
+> just-updated file. The browser authenticates to the proxy itself, so the
+> ZIP route always delivers real files.
 
 ## 1. One-time setup (~10 min)
 
@@ -449,17 +457,15 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
   that will be called out explicitly when it happens. If ever unsure, rerun the
   install command: it finishes instantly with "Requirement already satisfied"
   when nothing changed.
-- **Single-file updates** (when told only one or two files changed): no ZIP
-  needed. In a PowerShell window — plain cmdlet only, works under Constrained
-  Language Mode; do NOT prepend the old `[System.Net.WebRequest]…` login line
-  (CLM blocks it, and the download rides the system proxy without it):
-  ```powershell
-  Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
-  ```
-  (swap the path for whichever file changed — the raw URL is always
-  `https://raw.githubusercontent.com/leyixu26/celma-lgb/main/<path with / >`).
-  Browser alternative: open that raw URL, Ctrl+S into the right subfolder —
-  set "Save as type" to **All Files** so it doesn't gain a `.txt` extension.
+- **Single-file updates**: prefer the browser — open
+  `https://raw.githubusercontent.com/leyixu26/celma-lgb/main/<path>` (e.g.
+  `src/transport.py`), Ctrl+S into the right subfolder, "Save as type" =
+  **All Files** so it doesn't gain a `.txt` extension. Avoid PowerShell
+  `Invoke-WebRequest` downloads: under Constrained Language Mode the proxy
+  credentials can't be set, and the proxy then serves its HTML block page
+  *with status 200* — silently replacing the .py file with garbage (later
+  symptom: `SyntaxError: unterminated string literal`). After any update,
+  check `Get-Content <file> -TotalCount 1` prints `"""`, not `<html`.
 
 ## 4. Renewals & upkeep
 

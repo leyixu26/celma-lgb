@@ -103,7 +103,13 @@ class PSResponse:
         return self.content.decode("utf-8", errors="replace")
 
     def json(self):
-        return _json.loads(self.text)
+        try:
+            return _json.loads(self.text)
+        except ValueError:
+            snippet = self.text[:120].replace("\n", " ")
+            raise httpx.TransportError(
+                f"response from {self.url} is not JSON — an intercepting proxy "
+                f"may have served a block page. First bytes: {snippet!r}")
 
     def raise_for_status(self):
         if not 200 <= self.status_code < 300:
