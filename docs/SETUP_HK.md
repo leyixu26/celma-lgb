@@ -51,12 +51,19 @@ and github.com. No git, no VPN, no admin rights required.
    - On the refresh machine, save it as **`token.txt`** in the project folder
      (the file is git-ignored and never leaves the machine).
 
-## 2. Refresh — one click
+## 2. Refresh — one click (two equivalent ways)
 
-Double-click **`refresh.bat`**. It runs: scrape → parse → **verify** (hard gate:
-any completeness failure stops the run before publishing) → analyze →
-dashboard → publish. ~15–40 min depending on how many new schedule PDFs exist.
-When it finishes, the team dashboard is live at
+**Option A:** double-click **`refresh.bat`**.
+**Option B (bat-free — use this if the bat window flashes/closes or policy
+blocks .bat files):** in a terminal,
+```bat
+cd /d %USERPROFILE%\celma-lgb
+.venv\Scripts\python run_all.py --publish
+```
+Both run the same thing: scrape → parse → **verify** (hard gate: any
+completeness failure stops the run before publishing) → analyze → dashboard →
+publish. ~15–40 min depending on how many new schedule PDFs exist. When it
+finishes, the team dashboard is live at
 **https://leyixu26.github.io/celma-lgb/** (~1 min for Pages to redeploy).
 
 Interrupted? Run it again — scraping is resumable and the publish is atomic
@@ -85,6 +92,10 @@ Windows **Task Scheduler** → Create Basic Task:
   ```
   `--no-index` means pip never touches any index — nothing left to block. For a
   different Python version, request a matching bundle.
+  If it reports one specific package missing (e.g.
+  `Could not find a version … tzdata; sys_platform == "win32"`), the bundle
+  predates a fix — re-download the celma-lgb-wheels ZIP (bundle now includes
+  tzdata) and re-run the same command.
 - **Single package missing only** — for `chinesecalendar` the wheel is also
   vendored in this repo (see step 2); for others, retry against PyPI directly:
   `pip install -r requirements.txt -i https://pypi.org/simple --trusted-host pypi.org --trusted-host files.pythonhosted.org`
