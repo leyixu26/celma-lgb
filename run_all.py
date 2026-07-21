@@ -11,12 +11,17 @@ nothing is published.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
+
+# Windows consoles/redirected output default to legacy codepages; our scripts
+# print Chinese. Force UTF-8 for this process and all children.
+os.environ.setdefault("PYTHONUTF8", "1")
 
 
 def run(script: str, *args: str) -> None:
