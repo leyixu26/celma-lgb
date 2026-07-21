@@ -369,6 +369,15 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
    first run rebuilds all article caches (~15–40 min through the PowerShell
    transport); later runs are incremental and much faster. It must end with
    `ALL CHECKS PASS`. Open `docs\index.html` locally to preview the dashboard.
+   **What later refreshes fetch** (why they're much faster): article bodies +
+   PDFs are cached in `data\raw\` — only newly published articles (~30–50 a
+   month) are fetched. Two things are deliberately re-pulled in full every
+   run: the ~80+ schedule *list* pages (completeness is proven against the
+   site's 共 N 条 count, and celma backfills older-dated articles) and the
+   ~40-page realized feed (old rows get amended / re-tapped; the full pull is
+   what verify.py proves against the API's own total). Typical refresh:
+   150–300 requests ≈ 5–15 min via the PowerShell transport. Keeping this
+   incremental behavior is another reason to never delete `data\raw\`.
 2. **Then publish separately**: create `token.txt` (§1), then
    `.venv\Scripts\python publish.py` — pushes the already-built outputs, no
    re-scrape. Publishing routes through the same transport; expect one short
