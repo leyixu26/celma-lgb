@@ -114,8 +114,13 @@ detect settings" is on, a **script address** (PAC URL) is set, or a manual proxy
 - Test C shows a **manual proxy** or **script address (PAC)**: for PAC, open
   the script URL in the browser and find the `PROXY host:port` entries inside
   (Ctrl+F "PROXY"; the default is usually in the file's LAST `return` line).
+  **Copy only the `host:port`** — drop the word PROXY, the quotes, and anything
+  after (`; DIRECT` etc.), then prefix `http://`. Example: the PAC line
+  `return "PROXY hkproxy.company.com:8080; DIRECT";` becomes
+  `http://hkproxy.company.com:8080` — no quotes, no PROXY, no semicolon.
   Test each candidate directly, no file edits needed — use whichever prints 200:
   `.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=10, proxy='http://HOST:PORT').status_code)"`
+  The winner goes into `proxy.txt` as that single `http://host:port` line.
   Then create **`proxy.txt`** in the project folder containing one line, e.g.
   `http://proxy.mycompany.com:8080` — every script picks it up automatically
   (git-ignored, like token.txt); the run's first line confirms
