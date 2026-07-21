@@ -13,6 +13,7 @@ docs/METHODOLOGY.md §2 for the discovery record.
 """
 from __future__ import annotations
 
+import os
 import re
 import time
 from pathlib import Path
@@ -26,6 +27,17 @@ DATA_RAW = ROOT / "data" / "raw"
 DATA_CLEAN = ROOT / "data" / "clean"
 OUTPUTS = ROOT / "outputs"
 DOCS = ROOT / "docs"
+
+# Corporate networks: browsers reach the internet via the company proxy while
+# scripts go direct and time out. If a proxy.txt (git-ignored) exists in the
+# project root containing e.g. http://proxyhost:8080, route all HTTP through it.
+_proxy_file = ROOT / "proxy.txt"
+if _proxy_file.exists():
+    _p = _proxy_file.read_text(encoding="utf-8").strip()
+    if _p:
+        os.environ.setdefault("HTTP_PROXY", _p)
+        os.environ.setdefault("HTTPS_PROXY", _p)
+        print(f"[celma] using proxy from proxy.txt: {_p.split('@')[-1]}")
 
 # ---------------------------------------------------------------- endpoints
 ARTICLE_BASE = "https://www.celma.org.cn"

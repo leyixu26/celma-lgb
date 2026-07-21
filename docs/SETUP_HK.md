@@ -79,6 +79,32 @@ Windows **Task Scheduler** → Create Basic Task:
   next run catches everything (schedules post ~the 20th; results within
   3 working days).
 
+## Corporate proxy (scrape times out: WinError 10060 / "connected party did not properly respond")
+
+Your browser reaches celma through the **company proxy**; Python goes direct
+and gets firewalled — note the realized feed uses the non-standard port
+**4443**, which direct egress rules block almost universally.
+
+1. **Find the proxy address**: in a terminal `netsh winhttp show proxy`, or
+   Windows Settings → Network & Internet → Proxy. If only a "setup script"
+   (PAC) URL is shown, open that URL in the browser and look for
+   `PROXY host:port` entries inside — or ask IT for the proxy host:port.
+2. **Create `proxy.txt`** in the project folder containing one line, e.g.:
+   ```
+   http://proxy.mycompany.com:8080
+   ```
+   All scripts pick it up automatically (it's git-ignored, like token.txt).
+   Then re-run the refresh — the first line printed will confirm
+   `using proxy from proxy.txt`.
+3. If the proxy demands **username/password**, use
+   `http://user:password@proxy.mycompany.com:8080`. If it uses Windows-integrated
+   (NTLM/Kerberos) auth — pip/python can't speak that natively; ask IT for an
+   unauthenticated egress or report back for a workaround.
+4. Quick scope test — is it *everything* or just port 4443?
+   `.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=10).status_code)"`
+   Timeout here too = all egress needs the proxy (expected). 200 = only :4443
+   is blocked; the proxy route fixes that as well.
+
 ## Troubleshooting install
 
 - **`No matching distribution found` for ANY package (curated corporate

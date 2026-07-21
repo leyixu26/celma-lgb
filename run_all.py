@@ -23,6 +23,15 @@ SRC = ROOT / "src"
 # print Chinese. Force UTF-8 for this process and all children.
 os.environ.setdefault("PYTHONUTF8", "1")
 
+# Corporate proxy support: if proxy.txt exists (git-ignored, e.g. http://host:8080),
+# export it so every child (scrapers, publish) routes through the company proxy.
+_proxy_file = ROOT / "proxy.txt"
+if _proxy_file.exists():
+    _p = _proxy_file.read_text(encoding="utf-8").strip()
+    if _p:
+        os.environ.setdefault("HTTP_PROXY", _p)
+        os.environ.setdefault("HTTPS_PROXY", _p)
+
 
 def run(script: str, *args: str) -> None:
     print(f"\n=== {script} {' '.join(args)} ===")
