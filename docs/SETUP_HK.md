@@ -175,6 +175,33 @@ Expected: `[celma] using proxy from proxy.txt: …` then
 > (→ 10060 timeout). PowerShell syntax is `$env:HTTPS_PROXY="http://HOST:PORT"`;
 > in cmd, no spaces around `=`. `proxy.txt` sidesteps all of this — prefer it.
 
+### Still blocked through the proxy? (browser works, Python doesn't)
+
+Two causes fit: the PAC routes these hosts to a **different proxy** than the
+one you extracted, or the proxy requires **Windows-integrated (NTLM) auth**
+that plain Python can't speak. Two decisive tests:
+
+**T1 — fetch via the OS stack (same PAC + credentials as the browser), in PowerShell:**
+```powershell
+(Invoke-WebRequest "https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" -UseBasicParsing -ProxyUseDefaultCredentials).StatusCode
+```
+`200` = the machine can automate this — request the PowerShell-transport
+fallback for the pipeline. `407` = NTLM-only proxy (see ladder). Timeout =
+deeper block.
+
+**T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
+`.cn`, `china`. A branch returning a different `PROXY host:port` for these is
+the one the browser actually uses — test it with the explicit-proxy one-liner
+and put the winner in `proxy.txt`.
+
+**Workaround ladder:** ① T2 proxy in proxy.txt · ② PowerShell transport
+(after T1=200) · ③ NTLM helper (`px`) if 407s everywhere · ④ browser-console
+capture bundle (browser fetches, pipeline ingests offline) · ⑤ **file in
+parallel regardless** — IT request: *"allow python.exe / proxy CONNECT to
+celma.org.cn:443 and governbond.org.cn:4443 (MOF public bond-disclosure
+platform, already permitted for browsers)"* · ⑥ fallback: scrape from a
+celma-reachable machine, company PC consumes via GitHub (team unaffected).
+
 **3. Lock in:** create `proxy.txt` in the project folder — exactly one line,
 `http://HOST:PORT` (with `USER:PASS@` if step 1 needed it). Save as type
 *All Files* so it isn't `proxy.txt.txt`.
