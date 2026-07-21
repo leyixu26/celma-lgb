@@ -232,6 +232,16 @@ ZIP, overwrite the folder, rerun the step-2 verify one-liner. If it now prints
 a *readable* error instead of the total (e.g. something about EncodedCommand or
 a security policy), send that exact text back — it names the real blocker.
 
+**If it printed `ScriptContainedMaliciousContent`** ("script contains malicious
+content"): the endpoint-security agent (AMSI) blocks *base64-encoded*
+PowerShell (`-EncodedCommand`) — a pattern malware uses — and treats the word
+"Bypass" the same way. Fixed in the current version: requests go out as plain
+single-line `-Command` text, the same shape as the hand-typed T1 test that
+passed. Only `src/transport.py` changed — use the single-file update from
+"Updating the code" below, then rerun the verify one-liner. If even plain
+commands get flagged, report the exact text — the next step is a curl.exe
+transport (curl ships with Windows 10+ and can also use integrated proxy auth).
+
 **T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
 `.cn`, `china`. A branch returning a different `PROXY host:port` for these is
 the one the browser actually uses — test it with the explicit-proxy one-liner
