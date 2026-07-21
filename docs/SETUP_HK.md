@@ -377,7 +377,9 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
   install command: it finishes instantly with "Requirement already satisfied"
   when nothing changed.
 - **Single-file updates** (when told only one or two files changed): no ZIP
-  needed. In a PowerShell window:
+  needed. In a PowerShell window (line 1 = attach your Windows login to the
+  proxy, this window only — the same line as test T1; line 2 = the actual
+  download. If line 1 errors in your window, try line 2 alone):
   ```powershell
   [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
   Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
