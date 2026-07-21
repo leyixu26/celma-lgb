@@ -85,25 +85,42 @@ Your browser reaches celma through the **company proxy**; Python goes direct
 and gets firewalled — note the realized feed uses the non-standard port
 **4443**, which direct egress rules block almost universally.
 
-1. **Find the proxy address**: in a terminal `netsh winhttp show proxy`, or
-   Windows Settings → Network & Internet → Proxy. If only a "setup script"
-   (PAC) URL is shown, open that URL in the browser and look for
-   `PROXY host:port` entries inside — or ask IT for the proxy host:port.
-2. **Create `proxy.txt`** in the project folder containing one line, e.g.:
-   ```
-   http://proxy.mycompany.com:8080
-   ```
-   All scripts pick it up automatically (it's git-ignored, like token.txt).
-   Then re-run the refresh — the first line printed will confirm
-   `using proxy from proxy.txt`.
-3. If the proxy demands **username/password**, use
-   `http://user:password@proxy.mycompany.com:8080`. If it uses Windows-integrated
-   (NTLM/Kerberos) auth — pip/python can't speak that natively; ask IT for an
-   unauthenticated egress or report back for a workaround.
-4. Quick scope test — is it *everything* or just port 4443?
-   `.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=10).status_code)"`
-   Timeout here too = all egress needs the proxy (expected). 200 = only :4443
-   is blocked; the proxy route fixes that as well.
+Diagnose with three 30-second tests, then read the table.
+
+**Test A — can Python reach normal port 443?** (terminal, project folder)
+```bat
+.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=10).status_code)"
+```
+**Test B — can the browser reach the 4443 data feed?** Paste into Edge/Chrome:
+```
+https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adList=&adCode=87&zqlx=&year=&fxfs=&qxr=&fxqx=&zqCode=&zqName=&page=1&pageSize=1
+```
+JSON text = 4443 reachable in browser; error/timeout = blocked network-wide.
+**Test C — the browser-level proxy** (`netsh winhttp show proxy` saying
+"direct access" does NOT settle this — browsers read a different setting):
+Windows Settings → Network & Internet → **Proxy** — note whether "Automatically
+detect settings" is on, a **script address** (PAC URL) is set, or a manual proxy.
+
+| Test A | Test B | Diagnosis | Fix |
+|---|---|---|---|
+| 200 | JSON | 443 fine for Python; **python-on-4443 blocked** (process/port egress rule) | Ask IT: *"allow python.exe outbound TCP 4443 to governbond.org.cn"* — or run split mode (schedule at work, realized elsewhere) |
+| 200 | error | port 4443 blocked for the whole network | same two options |
+| timeout | — | Python has **no egress at all**; the browser exits via PAC or a security agent | see below |
+
+**Fixes for the timeout case:**
+- Test C shows a **manual proxy** or **script address (PAC)**: for PAC, open
+  the script URL in the browser and find the `PROXY host:port` entries inside.
+  Then create **`proxy.txt`** in the project folder containing one line, e.g.
+  `http://proxy.mycompany.com:8080` — every script picks it up automatically
+  (git-ignored, like token.txt); the run's first line confirms
+  `using proxy from proxy.txt`.
+- Proxy demands **username/password**: use
+  `http://user:password@proxyhost:port`. Windows-integrated (NTLM/Kerberos)
+  auth is not natively supported — ask IT for unauthenticated egress or a
+  workaround.
+- Test C shows nothing but a **Zscaler/Netskope-style icon** sits in the system
+  tray: egress is per-process policy; only an IT request helps —
+  *"allow python.exe outbound HTTPS to celma.org.cn and governbond.org.cn:4443"*.
 
 ## Troubleshooting install
 
