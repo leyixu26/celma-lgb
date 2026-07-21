@@ -17,6 +17,24 @@ and github.com. No git, no VPN, no admin rights required.
    ```
    *(Corporate SSL error? Append:
    `--trusted-host pypi.org --trusted-host files.pythonhosted.org`)*
+
+   Then add the **optional China holiday calendar** (recommended — used for
+   working-day lead metrics):
+   ```bat
+   pip install chinesecalendar
+   ```
+   If that fails with *"No matching distribution found"* (common on corporate
+   PyPI mirrors that don't carry this niche package), install it straight from
+   this repo's GitHub release instead — GitHub is reachable where PyPI mirrors
+   are curated:
+   ```bat
+   pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl
+   ```
+   If both fail, **just proceed without it** — the pipeline runs fully and
+   falls back to a Mon–Fri calendar. Only `lead_wd` (working-day lead times) is
+   affected, slightly overcounting across CN holidays/调休 weeks; the on-time
+   test, coverage, and all amounts are date-based and unaffected. Runs in
+   fallback mode print an explicit `NOTE:` so the basis is always visible.
 3. **Create the publish token** (lets this machine push refreshed data):
    - github.com → Settings → Developer settings → **Fine-grained tokens** →
      Generate new token
@@ -49,15 +67,17 @@ Windows **Task Scheduler** → Create Basic Task:
 
 ## Troubleshooting install
 
-- **`No matching distribution found for chinesecalendar`** — your network's PyPI
-  mirror doesn't carry this niche package. It is optional (the pipeline falls
-  back to a Mon–Fri calendar); to get full working-day precision install it via
-  GitHub instead, which this machine can reach:
-  ```bat
-  pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl
-  ```
+- **`No matching distribution found for <package>`** — your network's PyPI
+  mirror doesn't carry it. For `chinesecalendar` use the GitHub-release wheel
+  (see step 2 above); for a core package, retry against PyPI directly:
+  `pip install -r requirements.txt -i https://pypi.org/simple --trusted-host pypi.org --trusted-host files.pythonhosted.org`
 - **SSL / certificate errors from pip** — append
   `--trusted-host pypi.org --trusted-host files.pythonhosted.org`.
+- **Older download of this repo?** Early copies listed `chinesecalendar` as a
+  hard requirement, so `pip install -r requirements.txt` aborted entirely when
+  the mirror lacked it. Either re-download the repo, or install the core set
+  directly: `pip install httpx pandas lxml beautifulsoup4 pdfplumber matplotlib openpyxl`
+  and then follow step 2's optional-calendar instructions.
 
 ## 4. Renewals & upkeep
 
