@@ -96,6 +96,9 @@ Diagnose with three 30-second tests, then read the table.
 https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adList=&adCode=87&zqlx=&year=&fxfs=&qxr=&fxqx=&zqCode=&zqName=&page=1&pageSize=1
 ```
 JSON text = 4443 reachable in browser; error/timeout = blocked network-wide.
+(The browser may **download a file** instead of showing text — that IS success:
+the feed's content-type isn't displayable. Open the file with Notepad; it
+should start `{"code":"0","data":[…`.)
 **Test C — the browser-level proxy** (`netsh winhttp show proxy` saying
 "direct access" does NOT settle this — browsers read a different setting):
 Windows Settings → Network & Internet → **Proxy** — note whether "Automatically
