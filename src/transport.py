@@ -25,6 +25,8 @@ import os
 import re
 import subprocess
 import tempfile
+import threading
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -82,6 +84,16 @@ def _declixml(s: str) -> str:
     return re.sub(r"\s*\n\s*", " ", txt).strip()
 
 
+def _retryable(msg: str) -> bool:
+    """Retry drops/timeouts/5xx; don't retry hard client errors (403/404/407…).
+    IWR error text carries the code as '(NNN)'; no code = transport-level drop."""
+    m = re.search(r"\((\d{3})\)", msg)
+    if m:
+        code = int(m.group(1))
+        return code >= 500 or code in (408, 429)
+    return True
+
+
 class PSResponse:
     def __init__(self, status: int, content: bytes, url: str):
         self.status_code, self.content, self.url = status, content, url
@@ -110,11 +122,46 @@ class PowerShellClient:
     request is acceptable at our volumes).
     """
 
+    RETRIES = 3          # total attempts per request
+    BACKOFF = 2          # seconds; grows linearly (2s, 4s)
+    SPAWN_INTERVAL = 0.4  # min seconds between powershell launches, globally
+
+    _gate = threading.Lock()
+    _last_spawn = 0.0
+
     def __init__(self, headers=None, timeout=40, **_ignored):
         self.headers = dict(headers or {})
         self.timeout = int(timeout) if isinstance(timeout, (int, float)) else 40
 
+    def _pace(self) -> None:
+        """Global spawn throttle (shared across threads and client instances).
+        A burst of powershell.exe launches both looks like a spawn storm to the
+        EDR and hammers the proxy — sustained load is what breaks mid-run."""
+        with PowerShellClient._gate:
+            now = time.monotonic()
+            wait = PowerShellClient._last_spawn + self.SPAWN_INTERVAL - now
+            if wait > 0:
+                time.sleep(wait)
+                now = time.monotonic()
+            PowerShellClient._last_spawn = now
+
     def request(self, method: str, url: str, params=None, json=None) -> PSResponse:
+        """One request with automatic retries: a corporate proxy occasionally
+        drops a request mid-run; one blip must not stop a 300-request scrape."""
+        for attempt in range(1, self.RETRIES + 1):
+            try:
+                return self._request_once(method, url, params=params, json=json)
+            except httpx.TransportError as e:
+                if attempt == self.RETRIES or not _retryable(str(e)):
+                    raise
+                wait = self.BACKOFF * attempt
+                print(f"    [transport] retry {attempt}/{self.RETRIES - 1} "
+                      f"in {wait}s: {e}")
+                time.sleep(wait)
+        raise AssertionError("unreachable")
+
+    def _request_once(self, method: str, url: str, params=None, json=None) -> PSResponse:
+        self._pace()
         if params:
             url = url + ("&" if "?" in url else "?") + urlencode(params)
         out = tempfile.NamedTemporaryFile(delete=False)

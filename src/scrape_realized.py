@@ -37,7 +37,7 @@ def main() -> None:
         except httpx.HTTPError as e:
             if page == 1:
                 sys.exit(f"FAILED on page 1 ({type(e).__name__}: {e}) — is celma reachable from this network?")
-            print(f"page {page} error ({type(e).__name__}); stopping — re-run to complete.")
+            print(f"page {page} error ({type(e).__name__}: {e}); stopping — re-run to complete.")
             break
         (OUT / f"page_{page:04d}.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
         rows = data.get("data", []) or []

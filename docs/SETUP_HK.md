@@ -242,6 +242,20 @@ passed. Only `src/transport.py` changed — use the single-file update from
 commands get flagged, report the exact text — the next step is a curl.exe
 transport (curl ships with Windows 10+ and can also use integrated proxy auth).
 
+**If a scrape stops mid-run with a transport error** (e.g. realized "page 30
+error … re-run to complete", or schedule pages erroring): sustained request
+volume — especially the schedule list's 6 concurrent fetches — trips
+proxy/EDR throttling; one-off drops also happen. Fixed in the current
+version, three layers: every request auto-retries up to 3× with backoff
+(drops/timeouts/5xx retry; hard 4xx like 407 don't), PowerShell launches are
+globally paced ≥ 0.4 s apart, and schedule list concurrency is capped at 2
+under this transport. After updating, just re-run `run_all.py`: the realized
+feed restarts from page 1 by design (the full pull is the verified unit),
+and all schedule articles resume from cache, so nothing is lost. If runs
+STILL stop repeatedly, paste the error line (it now includes the full
+reason) — the next escalation is a persistent PowerShell worker (one
+process for all requests, no spawn storm).
+
 **If it printed `…NotSupportedInConstrainedLanguage`**: the policy runs
 *automated* PowerShell in Constrained Language Mode — .NET calls are blocked,
 cmdlets are allowed (interactive shells run full-language, which is why the

@@ -40,6 +40,11 @@ AMOUNT_FIELDS = ["new_general_yi", "new_special_yi", "refinance_yi"]
 
 
 def scrape_list(workers: int, max_passes: int) -> list[dict]:
+    from transport import backend
+    if backend() == "powershell" and workers > 2:
+        print("  [transport] powershell backend: capping list workers at 2 "
+              "(sustained 6-way spawn bursts trip proxy/EDR throttling)")
+        workers = 2
     client = new_client()
     by_id: dict[str, dict] = {}
     target, prev = None, -1
@@ -60,7 +65,7 @@ def scrape_list(workers: int, max_passes: int) -> list[dict]:
                     for row in parse_list_html(fut.result()):
                         by_id.setdefault(row["article_id"], row)
                 except Exception as e:  # noqa: BLE001
-                    print(f"  page {futs[fut]} error: {type(e).__name__}")
+                    print(f"  page {futs[fut]} error: {type(e).__name__}: {e}")
         got = len(by_id)
         print(f"list pass {p}: {got} unique / {target} target")
         if (target and got >= target) or got == prev:
@@ -122,7 +127,7 @@ def scrape_amounts(rows: list[dict], delay: float) -> None:
                 fetched += 1
                 time.sleep(delay)
             except Exception as e:  # noqa: BLE001
-                print(f"  {r['article_id']} error: {type(e).__name__}")
+                print(f"  {r['article_id']} error: {type(e).__name__}: {e}")
         out.append(rec)
         if i % 200 == 0:
             print(f"amounts: {i}/{len(rows)} ({hits} parsed, {fetched} newly fetched)")
