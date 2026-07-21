@@ -220,6 +220,10 @@ def excel(t: dict, chart_paths: list[Path]) -> Path:
 
 
 def main() -> None:
+    if _cc_workday is None:
+        print("NOTE: chinesecalendar not installed — working-day metrics (lead_wd) use a "
+              "Mon-Fri fallback that ignores CN holidays/调休. Install it for full precision "
+              "(see requirements.txt).")
     t = build()
     for name in ("reconciliation", "scorecard", "national_monthly"):
         t[name].to_csv(DATA_CLEAN / f"{name}.csv", index=False, encoding="utf-8-sig")

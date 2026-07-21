@@ -4,6 +4,12 @@ pandas>=2.2           # tables & reconciliation
 lxml>=5.2             # HTML parser backend
 beautifulsoup4>=4.12  # article-list / article parsing
 pdfplumber>=0.11      # planned amounts inside schedule PDFs
-chinesecalendar>=1.9  # China working-day calendar (refresh annually)
 matplotlib>=3.9       # charts for the Excel workbook
 openpyxl>=3.1         # Excel export
+
+# OPTIONAL (recommended): China holiday calendar for working-day metrics.
+# Without it, analyze.py falls back to a Mon-Fri rule (CN holidays ignored).
+# Some corporate PyPI mirrors don't carry it; install it separately with:
+#   pip install chinesecalendar
+# or, if your mirror lacks it, straight from this repo's release (GitHub works):
+#   pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl

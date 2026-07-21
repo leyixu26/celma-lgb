@@ -47,6 +47,18 @@ Windows **Task Scheduler** → Create Basic Task:
   next run catches everything (schedules post ~the 20th; results within
   3 working days).
 
+## Troubleshooting install
+
+- **`No matching distribution found for chinesecalendar`** — your network's PyPI
+  mirror doesn't carry this niche package. It is optional (the pipeline falls
+  back to a Mon–Fri calendar); to get full working-day precision install it via
+  GitHub instead, which this machine can reach:
+  ```bat
+  pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl
+  ```
+- **SSL / certificate errors from pip** — append
+  `--trusted-host pypi.org --trusted-host files.pythonhosted.org`.
+
 ## 4. Renewals & upkeep
 
 - **Token expires** (90 days): generate a new one, overwrite `token.txt`.
