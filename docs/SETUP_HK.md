@@ -66,9 +66,19 @@ Windows **Task Scheduler** → Create Basic Task:
 
 ## Troubleshooting install
 
-- **`No matching distribution found for <package>`** — your network's PyPI
-  mirror doesn't carry it. For `chinesecalendar` use the vendored wheel
-  (see step 2 above); for a core package, retry against PyPI directly:
+- **`No matching distribution found` for ANY package (curated corporate
+  mirror)** — skip the package index entirely. The complete dependency set is
+  bundled at **github.com/leyixu26/celma-lgb-wheels** (Windows x64,
+  Python 3.12): download that repo's ZIP (Code → Download ZIP, same as this
+  repo), extract, then:
+  ```bat
+  pip install --no-index --find-links C:\path\to\celma-lgb-wheels-main\wheelhouse -r requirements.txt
+  pip install --no-index --find-links C:\path\to\celma-lgb-wheels-main\wheelhouse chinesecalendar
+  ```
+  `--no-index` means pip never touches any index — nothing left to block. For a
+  different Python version, request a matching bundle.
+- **Single package missing only** — for `chinesecalendar` the wheel is also
+  vendored in this repo (see step 2); for others, retry against PyPI directly:
   `pip install -r requirements.txt -i https://pypi.org/simple --trusted-host pypi.org --trusted-host files.pythonhosted.org`
 - **Timeouts from pip (to PyPI or GitHub)** — your browser uses the corporate
   proxy but pip usually doesn't, so pip gets firewalled. In order:
