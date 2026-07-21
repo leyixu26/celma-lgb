@@ -94,6 +94,28 @@ Windows **Task Scheduler** → Create Basic Task:
   not github.com — if that domain is blocked, use the vendored copy instead.
 - **SSL / certificate errors from pip** — append
   `--trusted-host pypi.org --trusted-host files.pythonhosted.org`.
+- **pip says "Requirement already satisfied" but `python` says
+  `ModuleNotFoundError`** — your `pip` and `python` are two different Python
+  installations (venv not active in this window, or a Microsoft-Store/system
+  Python shadowing PATH). Prove it: `pip --version` vs
+  `python -c "import sys; print(sys.executable)"` — the paths won't match.
+  **Fix: stop relying on PATH — name the venv's interpreter explicitly** for
+  both the install and the test, so they cannot diverge:
+  ```bat
+  cd C:\path\to\celma-lgb
+  .venv\Scripts\python -m pip install --no-index --find-links "C:\path\to\wheelhouse" -r requirements.txt
+  .venv\Scripts\python -m pip install --no-index --find-links "C:\path\to\wheelhouse" chinesecalendar
+  .venv\Scripts\python -c "import httpx, pandas, bs4, lxml, pdfplumber, matplotlib, openpyxl, chinese_calendar; print('READY')"
+  ```
+  Run the pipeline the same way (`.venv\Scripts\python run_all.py`) — or just
+  use `refresh.bat`, which already calls `.venv\Scripts\python.exe` explicitly
+  and is immune to this problem.
+- **Wheelhouse path gotcha** — Windows "Extract All" wraps the ZIP in an extra
+  same-named folder; the real wheel folder is usually
+  `…\celma-lgb-wheels-main\celma-lgb-wheels-main\wheelhouse`. Navigate in
+  Explorer until you *see the .whl files*, then drag that folder into the
+  terminal to paste its true path. A correct install ends with
+  `Successfully installed httpx-… pandas-…` (a long list).
 - **Older download of this repo?** Early copies listed `chinesecalendar` as a
   hard requirement, so `pip install -r requirements.txt` aborted entirely when
   the mirror lacked it. Either re-download the repo, or install the core set
