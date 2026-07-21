@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import json as _json
 import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -41,6 +42,23 @@ def backend() -> str:
 def _q(s) -> str:
     """Single-quote a value for PowerShell (embedded quotes doubled)."""
     return "'" + str(s).replace("'", "''") + "'"
+
+
+_CLIXML_S = re.compile(r"<S[^>]*>(.*?)</S>", re.S)
+
+
+def _declixml(s: str) -> str:
+    """PowerShell serializes console streams as CLIXML under captured pipes
+    ('#< CLIXML' + <Objs>…_x000A_…</Objs>). Extract the human-readable text."""
+    if "#< CLIXML" not in s and "<Objs" not in s:
+        return s.strip()
+    parts = [m.group(1) for m in _CLIXML_S.finditer(s)]
+    txt = "".join(parts) if parts else s
+    txt = txt.replace("_x000D_", "").replace("_x000A_", "\n")
+    for a, b in (("&lt;", "<"), ("&gt;", ">"), ("&quot;", '"'),
+                 ("&apos;", "'"), ("&amp;", "&")):
+        txt = txt.replace(a, b)
+    return re.sub(r"\s*\n\s*", " ", txt).strip()
 
 
 class PSResponse:
@@ -80,10 +98,16 @@ class PowerShellClient:
             url = url + ("&" if "?" in url else "?") + urlencode(params)
         out = tempfile.NamedTemporaryFile(delete=False)
         out.close()
+        sf = tempfile.NamedTemporaryFile(delete=False, suffix=".status")
+        sf.close()
         body_path = None
         ua = self.headers.get("User-Agent")
         hdrs = {k: v for k, v in self.headers.items() if k.lower() != "user-agent"}
 
+        # Status is written to a FILE, not stdout — PowerShell serializes stdout
+        # as CLIXML under capture (…_x000A_…</Objs>), which corrupts any marker
+        # parsed from it. Files are immune. Status code uses [int] (the enum
+        # stringifies to "OK", not 200).
         lines = [
             "$ProgressPreference='SilentlyContinue'",
             "[System.Net.WebRequest]::DefaultWebProxy.Credentials="
@@ -106,28 +130,37 @@ class PowerShellClient:
             body_path = bf.name
             cmd += (f" -Body ([System.IO.File]::ReadAllText({_q(body_path)}))"
                     " -ContentType 'application/json; charset=utf-8'")
+        w = "[System.IO.File]::WriteAllText"
         lines += [
-            "try { " + cmd + "; Write-Output ('STATUS:'+$r.StatusCode) }",
+            "try { " + cmd + f"; {w}({_q(sf.name)},('STATUS:'+[int]$r.StatusCode)) }}",
             "catch { $resp=$_.Exception.Response",
-            "  if ($resp -ne $null) { Write-Output ('STATUS:'+[int]$resp.StatusCode) }",
-            "  else { Write-Output ('ERROR:'+$_.Exception.Message) } }",
+            f"  if ($resp -ne $null) {{ {w}({_q(sf.name)},('STATUS:'+[int]$resp.StatusCode)) }}",
+            f"  else {{ {w}({_q(sf.name)},('ERROR:'+$_.Exception.Message)) }} }}",
         ]
         enc = base64.b64encode("\n".join(lines).encode("utf-16-le")).decode()
         try:
             p = subprocess.run(
-                ["powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", enc],
-                capture_output=True, text=True, timeout=self.timeout + 30)
-            marker_lines = (p.stdout or "").strip().splitlines()
-            marker = marker_lines[-1] if marker_lines else ""
+                ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy",
+                 "Bypass", "-InputFormat", "None", "-OutputFormat", "Text",
+                 "-EncodedCommand", enc],
+                capture_output=True, text=True, stdin=subprocess.DEVNULL,
+                timeout=self.timeout + 30)
+            try:
+                marker = Path(sf.name).read_text(
+                    encoding="utf-8-sig", errors="replace").strip()
+            except OSError:
+                marker = ""
             if marker.startswith("STATUS:"):
                 return PSResponse(int(marker.split(":", 1)[1]),
                                   Path(out.name).read_bytes(), url)
+            detail = (marker or _declixml(p.stderr or "")
+                      or _declixml(p.stdout or "") or "no output from powershell")
             raise httpx.TransportError(
-                f"powershell transport: {marker or (p.stderr or '').strip() or 'no output'}")
+                f"powershell transport (exit {p.returncode}): {detail}")
         except subprocess.TimeoutExpired:
             raise httpx.TransportError(f"powershell transport timeout for {url}")
         finally:
-            for pth in (out.name, body_path):
+            for pth in (out.name, sf.name, body_path):
                 if pth:
                     try:
                         os.unlink(pth)

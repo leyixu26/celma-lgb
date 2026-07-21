@@ -223,6 +223,15 @@ Scheduler compatible; also carries the GitHub publish step.
    a refresh runs somewhat longer than on an unrestricted network — fine for
    the daily scheduled task.
 
+**If the verify step printed XML-ish garbage** (`…_x000A_…</Objs>`): that is
+PowerShell serializing its console streams as CLIXML when run under a captured
+pipe — fixed in the current version. The transport now returns the status via a
+temp file (immune to stream serialization), forces `-OutputFormat Text
+-InputFormat None`, and decodes CLIXML in error messages. Re-download the repo
+ZIP, overwrite the folder, rerun the step-2 verify one-liner. If it now prints
+a *readable* error instead of the total (e.g. something about EncodedCommand or
+a security policy), send that exact text back — it names the real blocker.
+
 **T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
 `.cn`, `china`. A branch returning a different `PROXY host:port` for these is
 the one the browser actually uses — test it with the explicit-proxy one-liner
