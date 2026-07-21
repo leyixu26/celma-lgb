@@ -42,10 +42,19 @@ def collect() -> list[Path]:
     return files
 
 
+def make_client():
+    sys.path.insert(0, str(ROOT / "src"))
+    from transport import backend, PowerShellClient
+    headers = {"Authorization": f"Bearer {token()}",
+               "Accept": "application/vnd.github+json"}
+    if backend() == "powershell":
+        print("publish: powershell transport (OS proxy stack)")
+        return PowerShellClient(headers=headers, timeout=120)
+    return httpx.Client(headers=headers, timeout=120, follow_redirects=True)
+
+
 def main() -> None:
-    c = httpx.Client(headers={"Authorization": f"Bearer {token()}",
-                              "Accept": "application/vnd.github+json"},
-                     timeout=120, follow_redirects=True)
+    c = make_client()
     head = c.get(f"{API}/git/ref/heads/{BRANCH}")
     head.raise_for_status()
     base_commit = head.json()["object"]["sha"]

@@ -193,9 +193,35 @@ proxy (variant 2):
 # variant 2 — explicit proxy + Windows credentials
 (Invoke-WebRequest "https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" -UseBasicParsing -Proxy "http://HOST:PORT" -ProxyUseDefaultCredentials).StatusCode
 ```
-`200` from either = the machine can automate this — request the
-PowerShell-transport fallback for the pipeline. `407` = NTLM-only proxy (see
-ladder). Timeout on both = deeper block.
+`200` from either = the machine can automate this — **activate the built-in
+PowerShell transport** (next). `407` = NTLM-only proxy (see ladder). Timeout on
+both = deeper block.
+
+### PowerShell transport (activate after T1 = 200)
+
+The pipeline can route every request through Windows PowerShell's
+`Invoke-WebRequest` — i.e. the OS network stack with the system PAC and your
+logged-in Windows credentials, the exact path T1 proved. No new software; works
+under Restricted execution policy (inline commands, no .ps1 files); Task
+Scheduler compatible; also carries the GitHub publish step.
+
+1. Create **`transport.txt`** in the project folder containing exactly one word:
+   ```
+   powershell
+   ```
+   (git-ignored, like token.txt / proxy.txt. proxy.txt is NOT needed in this
+   mode — the OS picks the proxy per the PAC.)
+2. Verify — the definitive test again, which now announces the transport:
+   ```bat
+   cd /d %USERPROFILE%\celma-lgb
+   .venv\Scripts\python -c "import sys; sys.path.insert(0,'src'); import celma; c=celma.new_client(); d=celma.fetch_realized_page(c,1,5); print('total bonds on platform:', d.get('total'))"
+   ```
+   Expect `[celma] transport: powershell (OS proxy stack + Windows credentials)`
+   then `total bonds on platform: 19xxx`.
+3. Run the pipeline as usual (`run_all.py`, then `--publish` once token.txt
+   exists). Each request spawns a short PowerShell process (~0.5 s overhead), so
+   a refresh runs somewhat longer than on an unrestricted network — fine for
+   the daily scheduled task.
 
 **T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
 `.cn`, `china`. A branch returning a different `PROXY host:port` for these is

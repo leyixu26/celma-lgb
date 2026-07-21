@@ -58,11 +58,15 @@ def article_url(article_id) -> str:
     return f"{ARTICLE_BASE}/{SCHEDULE_COL}/{article_id}.jhtml"
 
 
-def new_client(timeout: float = 40.0) -> httpx.Client:
-    return httpx.Client(
-        headers={"User-Agent": USER_AGENT, "Referer": ARTICLE_BASE + "/",
-                 "Accept-Language": "zh-CN,zh;q=0.9"},
-        timeout=timeout, follow_redirects=True, trust_env=True)
+def new_client(timeout: float = 40.0):
+    headers = {"User-Agent": USER_AGENT, "Referer": ARTICLE_BASE + "/",
+               "Accept-Language": "zh-CN,zh;q=0.9"}
+    from transport import backend, PowerShellClient
+    if backend() == "powershell":
+        print("[celma] transport: powershell (OS proxy stack + Windows credentials)")
+        return PowerShellClient(headers=headers, timeout=timeout)
+    return httpx.Client(headers=headers, timeout=timeout,
+                        follow_redirects=True, trust_env=True)
 
 
 def fetch_realized_page(client: httpx.Client, page: int = 1, page_size: int = 500) -> dict:
