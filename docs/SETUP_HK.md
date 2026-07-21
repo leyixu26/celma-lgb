@@ -283,6 +283,16 @@ passed. Only `src/transport.py` changed — use the single-file update from
 commands get flagged, report the exact text — the next step is a curl.exe
 transport (curl ships with Windows 10+ and can also use integrated proxy auth).
 
+**If you see "connection was forcibly closed by the remote host"**: that is a
+TCP reset — the celma list host (or the proxy) actively cutting sustained
+crawling. Handled in the current version: resets retry with long waits
+(10 s/20 s) and trigger a 90-second global cooldown (one request per 2 s), the
+schedule list re-passes fetch ONLY previously failed pages, and progress
+prints every ~20 list pages / 25 articles so a slow phase never looks stuck.
+Also: an article whose PDF fetch fails is NOT cached (it retries next run) —
+only complete article text enters the cache. Just re-run if a run still ends
+early; everything cached resumes.
+
 **If a scrape stops mid-run with a transport error** (e.g. realized "page 30
 error … re-run to complete", or schedule pages erroring): sustained request
 volume — especially the schedule list's 6 concurrent fetches — trips

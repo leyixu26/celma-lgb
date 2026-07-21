@@ -84,6 +84,10 @@ def _declixml(s: str) -> str:
     return re.sub(r"\s*\n\s*", " ", txt).strip()
 
 
+_RESET_MARKERS = ("forcibly closed", "connection was closed", "unable to read data",
+                  "connection reset", "transport connection")
+
+
 def _retryable(msg: str) -> bool:
     """Retry drops/timeouts/5xx; don't retry hard client errors (403/404/407…).
     IWR error text carries the code as '(NNN)'; no code = transport-level drop."""
@@ -130,10 +134,14 @@ class PowerShellClient:
 
     RETRIES = 3          # total attempts per request
     BACKOFF = 2          # seconds; grows linearly (2s, 4s)
+    RESET_BACKOFF = 10   # connection resets get longer waits (WAF/proxy cooloff)
+    COOLDOWN_SECS = 90   # after a reset, slow the global cadence for this long…
+    COOLDOWN_INTERVAL = 2.0   # …to one spawn per this many seconds
     SPAWN_INTERVAL = 0.4  # min seconds between powershell launches, globally
 
     _gate = threading.Lock()
     _last_spawn = 0.0
+    _cooldown_until = 0.0
 
     def __init__(self, headers=None, timeout=40, **_ignored):
         self.headers = dict(headers or {})
@@ -145,7 +153,10 @@ class PowerShellClient:
         EDR and hammers the proxy — sustained load is what breaks mid-run."""
         with PowerShellClient._gate:
             now = time.monotonic()
-            wait = PowerShellClient._last_spawn + self.SPAWN_INTERVAL - now
+            interval = (self.COOLDOWN_INTERVAL
+                        if now < PowerShellClient._cooldown_until
+                        else self.SPAWN_INTERVAL)
+            wait = PowerShellClient._last_spawn + interval - now
             if wait > 0:
                 time.sleep(wait)
                 now = time.monotonic()
@@ -158,10 +169,17 @@ class PowerShellClient:
             try:
                 return self._request_once(method, url, params=params, json=json)
             except httpx.TransportError as e:
+                msg = str(e).lower()
+                is_reset = any(m in msg for m in _RESET_MARKERS)
+                if is_reset:
+                    # the host/proxy is actively cutting us: slow everyone down
+                    PowerShellClient._cooldown_until = (
+                        time.monotonic() + self.COOLDOWN_SECS)
                 if attempt == self.RETRIES or not _retryable(str(e)):
                     raise
-                wait = self.BACKOFF * attempt
-                print(f"    [transport] retry {attempt}/{self.RETRIES - 1} "
+                wait = (self.RESET_BACKOFF if is_reset else self.BACKOFF) * attempt
+                tag = "reset — cooling down; " if is_reset else ""
+                print(f"    [transport] {tag}retry {attempt}/{self.RETRIES - 1} "
                       f"in {wait}s: {e}")
                 time.sleep(wait)
         raise AssertionError("unreachable")

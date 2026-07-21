@@ -48,6 +48,7 @@ def scrape_list(workers: int, max_passes: int) -> list[dict]:
     client = new_client()
     by_id: dict[str, dict] = {}
     target, prev = None, -1
+    err_pages: set[int] = set()
     for p in range(1, max_passes + 1):
         try:
             h1 = client.get(list_page_url(1)).text
@@ -57,18 +58,30 @@ def scrape_list(workers: int, max_passes: int) -> list[dict]:
         npages = max_page(h1)
         for row in parse_list_html(h1):
             by_id.setdefault(row["article_id"], row)
+        # later passes retry only the pages that failed, not the whole sweep
+        todo = sorted(err_pages) if (p > 1 and err_pages) else list(range(2, npages + 1))
+        if p > 1 and err_pages:
+            print(f"  pass {p}: refetching {len(todo)} previously failed pages")
+        err_pages = set()
+        done = 0
         with ThreadPoolExecutor(max_workers=workers) as ex:
             futs = {ex.submit(lambda pg: client.get(list_page_url(pg)).text, pg): pg
-                    for pg in range(2, npages + 1)}
+                    for pg in todo}
             for fut in as_completed(futs):
                 try:
                     for row in parse_list_html(fut.result()):
                         by_id.setdefault(row["article_id"], row)
                 except Exception as e:  # noqa: BLE001
+                    err_pages.add(futs[fut])
                     print(f"  page {futs[fut]} error: {type(e).__name__}: {e}")
+                done += 1
+                if done % 20 == 0:
+                    print(f"  … {done}/{len(todo)} list pages this pass "
+                          f"({len(by_id)} unique so far)")
         got = len(by_id)
-        print(f"list pass {p}: {got} unique / {target} target")
-        if (target and got >= target) or got == prev:
+        tail = f" ({len(err_pages)} pages failed)" if err_pages else ""
+        print(f"list pass {p}: {got} unique / {target} target{tail}")
+        if (target and got >= target) or (got == prev and not err_pages):
             break
         prev = got
         time.sleep(1)
@@ -91,12 +104,15 @@ def article_text(client: httpx.Client, row: dict) -> str:
     soup = BeautifulSoup(client.get(row["url"]).text, "lxml")
     text = soup.get_text(" ", strip=True)
     for purl in pdf_links(soup)[:4]:
+        pdf_bytes = client.get(purl).content   # fetch failures PROPAGATE: a
+        # flaky-network article must not be cached without its PDF text, or the
+        # amounts would be lost forever (cache hit skips refetching)
         try:
             import pdfplumber
-            with pdfplumber.open(io.BytesIO(client.get(purl).content)) as pdf:
+            with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
                 text += "\n[PDF] " + "\n".join((pg.extract_text() or "") for pg in pdf.pages)
         except Exception:  # noqa: BLE001
-            pass
+            pass                               # corrupt PDF: cache what we have
     tmp = f.with_suffix(".tmp")   # atomic: a Ctrl+C can never leave a truncated cache entry
     tmp.write_text(text, encoding="utf-8")
     tmp.replace(f)
@@ -131,7 +147,7 @@ def scrape_amounts(rows: list[dict], delay: float) -> None:
             except Exception as e:  # noqa: BLE001
                 print(f"  {r['article_id']} error: {type(e).__name__}: {e}")
         out.append(rec)
-        if i % 200 == 0:
+        if i % 25 == 0:
             print(f"amounts: {i}/{len(rows)} ({hits} parsed, {fetched} newly fetched)")
     client.close()
     with AMOUNTS_OUT.open("w", newline="", encoding="utf-8-sig") as f:
