@@ -112,7 +112,10 @@ detect settings" is on, a **script address** (PAC URL) is set, or a manual proxy
 
 **Fixes for the timeout case:**
 - Test C shows a **manual proxy** or **script address (PAC)**: for PAC, open
-  the script URL in the browser and find the `PROXY host:port` entries inside.
+  the script URL in the browser and find the `PROXY host:port` entries inside
+  (Ctrl+F "PROXY"; the default is usually in the file's LAST `return` line).
+  Test each candidate directly, no file edits needed — use whichever prints 200:
+  `.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=10, proxy='http://HOST:PORT').status_code)"`
   Then create **`proxy.txt`** in the project folder containing one line, e.g.
   `http://proxy.mycompany.com:8080` — every script picks it up automatically
   (git-ignored, like token.txt); the run's first line confirms
