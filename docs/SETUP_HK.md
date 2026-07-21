@@ -363,6 +363,23 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
   directly: `pip install httpx pandas lxml beautifulsoup4 pdfplumber matplotlib openpyxl`
   and then follow step 2's optional-calendar instructions.
 
+## First full run on the PC & first publish
+
+1. **First round WITHOUT publish**: `.venv\Scripts\python run_all.py`. The
+   first run rebuilds all article caches (~15–40 min through the PowerShell
+   transport); later runs are incremental and much faster. It must end with
+   `ALL CHECKS PASS`. Open `docs\index.html` locally to preview the dashboard.
+2. **Then publish separately**: create `token.txt` (§1), then
+   `.venv\Scripts\python publish.py` — pushes the already-built outputs, no
+   re-scrape. Publishing routes through the same transport; expect one short
+   PowerShell flash per uploaded file.
+3. **Safety net**: the pre-PC dashboard is archived permanently at
+   `https://leyixu26.github.io/celma-lgb/archive/index_2026-07-21.html`, and
+   the whole repo state is pinned by git tag `site-2026-07-21`. A publish can
+   never delete files (it only adds/updates), so the archive survives every
+   refresh. If a refresh ever breaks the live page, the archive is the
+   reference and any commit can be reverted on GitHub.
+
 ## Updating the code (re-downloads)
 
 - **Copy-overwrite, never delete.** Updates are a merge: extract the ZIP and
