@@ -124,6 +124,15 @@ Windows **Task Scheduler** → Create Basic Task:
   `%USERPROFILE%\celma-lgb` (always local), **recreate the venv from scratch
   there** (venvs are path-bound — never move one), and reinstall from the
   wheelhouse. Results publish via GitHub, so nothing needs the network share.
+- **`refresh.bat` window flashes and closes instantly** — never diagnose a
+  flashing console by double-click; run it from a terminal so the error stays
+  visible: `cd /d %USERPROFILE%\celma-lgb` then `refresh.bat`. Typical causes:
+  no `.venv` yet (finish setup first), running a stray copy (Downloads/ZIP
+  viewer/network), or corporate policy blocking `.bat` files. The bat is only a
+  wrapper — the policy-proof equivalent is:
+  `.venv\Scripts\python run_all.py --publish`
+  (and Task Scheduler can call `.venv\Scripts\python.exe` with argument
+  `run_all.py --publish`, *Start in* `%USERPROFILE%\celma-lgb`, no bat needed).
 - **Wheelhouse path gotcha** — Windows "Extract All" wraps the ZIP in an extra
   same-named folder; the real wheel folder is usually
   `…\celma-lgb-wheels-main\celma-lgb-wheels-main\wheelhouse`. Navigate in
