@@ -181,13 +181,21 @@ Two causes fit: the PAC routes these hosts to a **different proxy** than the
 one you extracted, or the proxy requires **Windows-integrated (NTLM) auth**
 that plain Python can't speak. Two decisive tests:
 
-**T1 — fetch via the OS stack (same PAC + credentials as the browser), in PowerShell:**
+**T1 — fetch via the OS stack (same PAC + credentials as the browser).** Use
+the blue **Windows PowerShell**. Note: `-ProxyUseDefaultCredentials` is not
+valid without `-Proxy`, so either use the system PAC (variant 1) or name the
+proxy (variant 2):
 ```powershell
-(Invoke-WebRequest "https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" -UseBasicParsing -ProxyUseDefaultCredentials).StatusCode
+# variant 1 — system PAC + Windows credentials
+[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+(Invoke-WebRequest "https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" -UseBasicParsing).StatusCode
+
+# variant 2 — explicit proxy + Windows credentials
+(Invoke-WebRequest "https://www.governbond.org.cn:4443/api/loadBondData.action?timeStamp=1&dataType=ZQFXLISTBYAD&adCode=87&page=1&pageSize=1" -UseBasicParsing -Proxy "http://HOST:PORT" -ProxyUseDefaultCredentials).StatusCode
 ```
-`200` = the machine can automate this — request the PowerShell-transport
-fallback for the pipeline. `407` = NTLM-only proxy (see ladder). Timeout =
-deeper block.
+`200` from either = the machine can automate this — request the
+PowerShell-transport fallback for the pipeline. `407` = NTLM-only proxy (see
+ladder). Timeout on both = deeper block.
 
 **T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
 `.cn`, `china`. A branch returning a different `PROXY host:port` for these is
