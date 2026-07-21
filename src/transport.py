@@ -14,7 +14,9 @@ Activate by creating transport.txt in the project root containing one word:
 -Command text: no .ps1 files (so execution policy never applies) and no
 -EncodedCommand (corporate AMSI/EDR flags base64-encoded PowerShell as
 malicious — ScriptContainedMaliciousContent). Plain text also mirrors the
-hand-typed T1 test the proxy provably allows.
+hand-typed T1 test the proxy provably allows. Every command is additionally
+Constrained-Language-Mode-safe — locked-down hosts run automated PowerShell in
+CLM, which blocks .NET calls but allows all cmdlets.
 """
 from __future__ import annotations
 
@@ -43,6 +45,24 @@ def backend() -> str:
 def _q(s) -> str:
     """Single-quote a value for PowerShell (embedded quotes doubled)."""
     return "'" + str(s).replace("'", "''") + "'"
+
+
+def _proxy_url() -> str:
+    f = ROOT / "proxy.txt"
+    if f.exists():
+        p = f.read_text(encoding="utf-8").strip()
+        if p:
+            return p if "://" in p else "http://" + p
+    return ""
+
+
+# HttpWebRequest "protected" headers: PS 5.1 rejects these when passed via
+# -Headers. None matter for our endpoints (celma GETs work bare — T1 proved
+# it; GitHub needs only Authorization, which IS allowed). UA goes via -UserAgent.
+_RESTRICTED_HEADERS = frozenset({
+    "user-agent", "referer", "accept", "accept-language", "content-type",
+    "host", "connection", "range", "date", "expect", "if-modified-since",
+    "transfer-encoding"})
 
 
 _CLIXML_S = re.compile(r"<S[^>]*>(.*?)</S>", re.S)
@@ -103,43 +123,45 @@ class PowerShellClient:
         sf.close()
         body_path = None
         ua = self.headers.get("User-Agent")
-        hdrs = {k: v for k, v in self.headers.items() if k.lower() != "user-agent"}
+        hdrs = {k: v for k, v in self.headers.items()
+                if k.lower() not in _RESTRICTED_HEADERS}
 
         # Status is written to a FILE, not stdout — PowerShell serializes stdout
         # as CLIXML under capture (…_x000A_…</Objs>), which corrupts any marker
-        # parsed from it. Files are immune. Status code uses [int] (the enum
-        # stringifies to "OK", not 200).
+        # parsed from it. Files are immune.
         # The whole script is ONE line of plain -Command text: no newlines, no
         # double quotes (values are PS-single-quoted), no base64 — AMSI/EDR
         # blocks -EncodedCommand, and "Bypass" is likewise a trigger word.
-        stmts = [
-            "$ProgressPreference='SilentlyContinue'",
-            "[System.Net.WebRequest]::DefaultWebProxy.Credentials="
-            "[System.Net.CredentialCache]::DefaultCredentials",
-            "$h=@{}",
-        ]
+        # Constrained-Language-Mode-safe: cmdlets and core types ONLY (no
+        # [System.*]:: calls, no property setters, no $r/-PassThru — success
+        # writes a literal STATUS:200; callers only need 2xx / not-2xx, and on
+        # failure the caught error text carries the real code, e.g. "(407)").
+        # System PAC applies to Invoke-WebRequest on its own; if the proxy
+        # demands credentials, proxy.txt triggers -Proxy +
+        # -ProxyUseDefaultCredentials (the user's Windows login, CLM-legal).
+        stmts = ["$ProgressPreference='SilentlyContinue'", "$h=@{}"]
         for k, v in hdrs.items():
             stmts.append(f"$h[{_q(k)}]={_q(v)}")
-        cmd = (f"$r=Invoke-WebRequest -Uri {_q(url)} -UseBasicParsing "
-               f"-TimeoutSec {self.timeout} -OutFile {_q(out.name)} -PassThru "
+        cmd = (f"Invoke-WebRequest -Uri {_q(url)} -UseBasicParsing "
+               f"-TimeoutSec {self.timeout} -OutFile {_q(out.name)} "
                f"-Method {method}")
         if ua:
             cmd += f" -UserAgent {_q(ua)}"
         if hdrs:
             cmd += " -Headers $h"
+        proxy = _proxy_url()
+        if proxy:
+            cmd += f" -Proxy {_q(proxy)} -ProxyUseDefaultCredentials"
         if json is not None:
             bf = tempfile.NamedTemporaryFile(delete=False, suffix=".json")
             bf.write(_json.dumps(json).encode("utf-8"))
             bf.close()
             body_path = bf.name
-            cmd += (f" -Body ([System.IO.File]::ReadAllText({_q(body_path)}))"
+            cmd += (f" -InFile {_q(body_path)}"
                     " -ContentType 'application/json; charset=utf-8'")
-        w = "[System.IO.File]::WriteAllText"
-        stmts.append(
-            "try { " + cmd + f"; {w}({_q(sf.name)},('STATUS:'+[int]$r.StatusCode)) }}"
-            " catch { $resp=$_.Exception.Response;"
-            f" if ($resp -ne $null) {{ {w}({_q(sf.name)},('STATUS:'+[int]$resp.StatusCode)) }}"
-            f" else {{ {w}({_q(sf.name)},('ERROR:'+$_.Exception.Message)) }} }}")
+        sc = f"Set-Content -LiteralPath {_q(sf.name)} -Encoding UTF8 -Value "
+        stmts.append("try { " + cmd + f"; {sc}'STATUS:200' }}"
+                     f" catch {{ {sc}('ERROR:'+$_) }}")
         script = "; ".join(stmts).replace('"', "'").replace("\n", " ").replace("\r", " ")
         try:
             p = subprocess.run(

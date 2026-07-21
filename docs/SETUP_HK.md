@@ -242,6 +242,21 @@ passed. Only `src/transport.py` changed — use the single-file update from
 commands get flagged, report the exact text — the next step is a curl.exe
 transport (curl ships with Windows 10+ and can also use integrated proxy auth).
 
+**If it printed `…NotSupportedInConstrainedLanguage`**: the policy runs
+*automated* PowerShell in Constrained Language Mode — .NET calls are blocked,
+cmdlets are allowed (interactive shells run full-language, which is why the
+hand-typed T1 worked). Fixed in the current version: the transport is pure
+cmdlets — the system PAC routes requests on its own, with no .NET proxy tweak.
+Single-file update `src/transport.py`, rerun the verify one-liner. Two
+outcomes:
+  - the total prints → done, run the pipeline;
+  - `ERROR: … (407) Proxy Authentication Required` → the proxy wants
+    credentials. Put the proxy address into `proxy.txt` (format
+    `http://host:port` — the entry the PAC returns for
+    `www.governbond.org.cn`, see the PAC-extraction section above). The
+    transport then adds `-Proxy … -ProxyUseDefaultCredentials` (your Windows
+    login, CLM-legal) automatically. Rerun.
+
 **T2 — PAC host-specific branches:** Ctrl+F the PAC for `celma`, `governbond`,
 `.cn`, `china`. A branch returning a different `PROXY host:port` for these is
 the one the browser actually uses — test it with the explicit-proxy one-liner
