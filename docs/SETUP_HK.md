@@ -133,6 +133,45 @@ detect settings" is on, a **script address** (PAC URL) is set, or a manual proxy
   tray: egress is per-process policy; only an IT request helps —
   *"allow python.exe outbound HTTPS to celma.org.cn and governbond.org.cn:4443"*.
 
+### Once you have a candidate proxy — verify, lock in, run
+
+Replace `HOST:PORT` throughout. These tests double as the "is the site blocked?"
+check: any printed status number proves the path is open.
+
+**1. Website through the proxy (~10 s):**
+```bat
+cd /d %USERPROFILE%\celma-lgb
+.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.celma.org.cn', timeout=15, proxy='http://HOST:PORT').status_code)"
+```
+`200` = proxy works, celma not blocked · `407` = proxy wants credentials — use
+`http://USERNAME:PASSWORD@HOST:PORT` (NTLM-only proxies won't accept this; ask
+IT) · `403`/other = destination filtered (whitelist request) · timeout = wrong
+candidate, try the next PAC entry.
+
+**2. The port-4443 data feed through the proxy (~10 s):**
+```bat
+.venv\Scripts\python -c "import httpx; print(httpx.get('https://www.governbond.org.cn:4443/api/loadBondData.action', timeout=20, proxy='http://HOST:PORT').status_code)"
+```
+ANY number printed (200/400/500…) = the path works — this is the original
+blocker cleared. Timeout/proxy error = the proxy refuses CONNECT on 4443 → IT:
+*"allow proxy CONNECT to governbond.org.cn:4443 (MOF public bond-disclosure feed)."*
+
+**3. Lock in:** create `proxy.txt` in the project folder — exactly one line,
+`http://HOST:PORT` (with `USER:PASS@` if step 1 needed it). Save as type
+*All Files* so it isn't `proxy.txt.txt`.
+
+**4. First full run — without publishing:**
+```bat
+.venv\Scripts\python run_all.py
+```
+Milestones: `[celma] using proxy from proxy.txt` → `realized page 1: 500 rows …`
+counting to ~40 pages → `list … COMPLETE` → `amounts: … newly fetched` →
+`ALL CHECKS PASS` → `DONE.` (~15–40 min; interruptions resume on re-run).
+
+**5. Enable publishing:** create the GitHub token (§1.3) as `token.txt`, then
+every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
+/ the scheduled task) — the team dashboard updates ~1 min later.
+
 ## Troubleshooting install
 
 - **`No matching distribution found` for ANY package (curated corporate
