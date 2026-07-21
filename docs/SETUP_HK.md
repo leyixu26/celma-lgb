@@ -338,6 +338,30 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
   directly: `pip install httpx pandas lxml beautifulsoup4 pdfplumber matplotlib openpyxl`
   and then follow step 2's optional-calendar instructions.
 
+## Updating the code (re-downloads)
+
+- **Copy-overwrite, never delete.** Updates are a merge: extract the ZIP and
+  copy its contents INTO `%USERPROFILE%\celma-lgb`, replacing when asked. Never
+  delete the folder first — it holds machine-only files the ZIP does not:
+  `.venv\` (all installed packages), `token.txt`, `transport.txt`, `proxy.txt`,
+  and the raw scrape caches under `data\raw\` (losing those forces a full
+  re-scrape).
+- **`pip install` is NOT needed after a re-download.** Packages live in `.venv\`
+  and survive overwrites. Reinstall only when `requirements.txt` changes —
+  that will be called out explicitly when it happens. If ever unsure, rerun the
+  install command: it finishes instantly with "Requirement already satisfied"
+  when nothing changed.
+- **Single-file updates** (when told only one or two files changed): no ZIP
+  needed. In a PowerShell window:
+  ```powershell
+  [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+  Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
+  ```
+  (swap the path for whichever file changed — the raw URL is always
+  `https://raw.githubusercontent.com/leyixu26/celma-lgb/main/<path with / >`).
+  Browser alternative: open that raw URL, Ctrl+S into the right subfolder —
+  set "Save as type" to **All Files** so it doesn't gain a `.txt` extension.
+
 ## 4. Renewals & upkeep
 
 - **Token expires** (90 days): generate a new one, overwrite `token.txt`.
