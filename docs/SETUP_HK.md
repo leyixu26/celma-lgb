@@ -23,12 +23,11 @@ and github.com. No git, no VPN, no admin rights required.
    ```bat
    pip install chinesecalendar
    ```
-   If that fails with *"No matching distribution found"* (common on corporate
-   PyPI mirrors that don't carry this niche package), install it straight from
-   this repo's GitHub release instead — GitHub is reachable where PyPI mirrors
-   are curated:
+   If that fails for ANY reason ("No matching distribution found" on a corporate
+   mirror, timeouts, SSL) — the wheel **ships inside this repo**, so install it
+   with no network at all:
    ```bat
-   pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl
+   pip install vendor\chinesecalendar-1.11.0-py2.py3-none-any.whl
    ```
    If both fail, **just proceed without it** — the pipeline runs fully and
    falls back to a Mon–Fri calendar. Only `lead_wd` (working-day lead times) is
@@ -68,9 +67,21 @@ Windows **Task Scheduler** → Create Basic Task:
 ## Troubleshooting install
 
 - **`No matching distribution found for <package>`** — your network's PyPI
-  mirror doesn't carry it. For `chinesecalendar` use the GitHub-release wheel
+  mirror doesn't carry it. For `chinesecalendar` use the vendored wheel
   (see step 2 above); for a core package, retry against PyPI directly:
   `pip install -r requirements.txt -i https://pypi.org/simple --trusted-host pypi.org --trusted-host files.pythonhosted.org`
+- **Timeouts from pip (to PyPI or GitHub)** — your browser uses the corporate
+  proxy but pip usually doesn't, so pip gets firewalled. In order:
+  1. quick retry with a longer timeout: add `--default-timeout=60`;
+  2. route pip through the proxy (address from IT, or Windows Settings →
+     Network & Internet → Proxy): add `--proxy http://PROXYHOST:PORT`
+     (combinable with `--trusted-host …`);
+  3. avoid the network entirely: the calendar wheel is vendored in `vendor\`
+     (step 2), and any other blocked package can be browser-downloaded from
+     pypi.org (its "Download files" page) and installed as a local file:
+     `pip install path\to\file.whl`.
+  Note GitHub *release* downloads come from `objects.githubusercontent.com`,
+  not github.com — if that domain is blocked, use the vendored copy instead.
 - **SSL / certificate errors from pip** — append
   `--trusted-host pypi.org --trusted-host files.pythonhosted.org`.
 - **Older download of this repo?** Early copies listed `chinesecalendar` as a

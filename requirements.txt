@@ -11,5 +11,5 @@ openpyxl>=3.1         # Excel export
 # Without it, analyze.py falls back to a Mon-Fri rule (CN holidays ignored).
 # Some corporate PyPI mirrors don't carry it; install it separately with:
 #   pip install chinesecalendar
-# or, if your mirror lacks it, straight from this repo's release (GitHub works):
-#   pip install https://github.com/leyixu26/celma-lgb/releases/download/v1.1/chinesecalendar-1.11.0-py2.py3-none-any.whl
+# or fully offline from the copy shipped in this repo:
+#   pip install vendor/chinesecalendar-1.11.0-py2.py3-none-any.whl
