@@ -3,6 +3,30 @@
 The refresh machine needs: **Python 3.11+**, internet access to celma.org.cn
 and github.com. No git, no VPN, no admin rights required.
 
+## ⚡ Quick update & run (current: 2026-07-21)
+
+If a run is active, stop it first: click its window, **Ctrl+C**. Always safe —
+every fetched article is cached (writes are atomic), and re-runs resume.
+
+Paste into a PowerShell window (line 1 = proxy login for this window; the rest
+download the latest changed files):
+
+```powershell
+[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
+Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
+Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_realized.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_realized.py"
+Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_schedule.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_schedule.py"
+```
+
+Then run:
+
+```powershell
+cd $env:USERPROFILE\celma-lgb
+.venv\Scripts\python run_all.py
+```
+
+(This box always lists the latest files to update — no ZIP needed.)
+
 ## 1. One-time setup (~10 min)
 
 > **⚠ Put the project on a LOCAL path first.** On corporate PCs, Desktop /

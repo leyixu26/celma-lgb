@@ -97,7 +97,9 @@ def article_text(client: httpx.Client, row: dict) -> str:
                 text += "\n[PDF] " + "\n".join((pg.extract_text() or "") for pg in pdf.pages)
         except Exception:  # noqa: BLE001
             pass
-    f.write_text(text, encoding="utf-8")
+    tmp = f.with_suffix(".tmp")   # atomic: a Ctrl+C can never leave a truncated cache entry
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(f)
     return text
 
 
