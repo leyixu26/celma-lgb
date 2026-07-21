@@ -5,6 +5,14 @@ and github.com. No git, no VPN, no admin rights required.
 
 ## 1. One-time setup (~10 min)
 
+> **⚠ Put the project on a LOCAL path first.** On corporate PCs, Desktop /
+> Documents are often redirected to a network share (UNC `\\server\…` or
+> OneDrive). `cmd` cannot use UNC paths as a working directory (it silently
+> falls back to `C:\Windows`), and venvs on shares misbehave — producing
+> confusing pip/python mismatches. Use your local home instead: in Explorer
+> paste `%USERPROFILE%` in the address bar and put the project folder there
+> (e.g. `C:\Users\<you>\celma-lgb`); in terminals, `cd /d %USERPROFILE%\celma-lgb`.
+
 1. **Get the project** (either way):
    - `python get_repo.py` (after downloading just that one file from the repo), or
    - github.com/leyixu26/celma-lgb → **Code → Download ZIP** → extract.
@@ -110,6 +118,12 @@ Windows **Task Scheduler** → Create Basic Task:
   Run the pipeline the same way (`.venv\Scripts\python run_all.py`) — or just
   use `refresh.bat`, which already calls `.venv\Scripts\python.exe` explicitly
   and is immune to this problem.
+- **Project on a UNC / network / OneDrive path** — the root cause of most of
+  the above: `cmd` falls back to `C:\Windows` on UNC working directories, so
+  venv creation/activation lands in the wrong place. Move the project to
+  `%USERPROFILE%\celma-lgb` (always local), **recreate the venv from scratch
+  there** (venvs are path-bound — never move one), and reinstall from the
+  wheelhouse. Results publish via GitHub, so nothing needs the network share.
 - **Wheelhouse path gotcha** — Windows "Extract All" wraps the ZIP in an extra
   same-named folder; the real wheel folder is usually
   `…\celma-lgb-wheels-main\celma-lgb-wheels-main\wheelhouse`. Navigate in
