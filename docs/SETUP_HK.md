@@ -152,9 +152,21 @@ candidate, try the next PAC entry.
 ```bat
 .venv\Scripts\python -c "import httpx; print(httpx.get('https://www.governbond.org.cn:4443/api/loadBondData.action', timeout=20, proxy='http://HOST:PORT').status_code)"
 ```
-ANY number printed (200/400/500…) = the path works — this is the original
-blocker cleared. Timeout/proxy error = the proxy refuses CONNECT on 4443 → IT:
+ANY number printed (200/400/405/500…) = the path works — this is the original
+blocker cleared. (`405 Method Not Allowed` just means the endpoint dislikes a
+bare parameter-less probe; the real scraper sends fully-parameterized requests.)
+Timeout/proxy error = the proxy refuses CONNECT on 4443 → IT:
 *"allow proxy CONNECT to governbond.org.cn:4443 (MOF public bond-disclosure feed)."*
+
+**2b. Definitive test — run the actual production fetch through the proxy:**
+```bat
+set HTTPS_PROXY=http://HOST:PORT
+set HTTP_PROXY=http://HOST:PORT
+.venv\Scripts\python -c "import sys; sys.path.insert(0,'src'); import celma; c=celma.new_client(); d=celma.fetch_realized_page(c,1,5); print('total bonds on platform:', d.get('total'))"
+```
+`total bonds on platform: 19xxx` = absolute proof — proceed to step 3. An HTTP
+`418` here would mean the platform's WAF is bot-flagging the proxy's exit
+(unlikely when the browser works through the same proxy) — report it.
 
 **3. Lock in:** create `proxy.txt` in the project folder — exactly one line,
 `http://HOST:PORT` (with `USER:PASS@` if step 1 needed it). Save as type
