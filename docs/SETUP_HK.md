@@ -8,11 +8,13 @@ and github.com. No git, no VPN, no admin rights required.
 If a run is active, stop it first: click its window, **Ctrl+C**. Always safe —
 every fetched article is cached (writes are atomic), and re-runs resume.
 
-Paste into a PowerShell window (line 1 = proxy login for this window; the rest
-download the latest changed files):
+Paste into a PowerShell window (plain cmdlets only — they ride the system
+proxy natively, no login line needed; that also keeps them legal under
+Constrained Language Mode, which may apply even interactively. If a download
+fails with `(407)`, use the browser instead: open the raw URL, Ctrl+S, "Save
+as type" = All Files):
 
 ```powershell
-[System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
 Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
 Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_realized.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_realized.py"
 Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/scrape_schedule.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\scrape_schedule.py"
@@ -220,6 +222,13 @@ proxy (variant 2):
 `200` from either = the machine can automate this — **activate the built-in
 PowerShell transport** (next). `407` = NTLM-only proxy (see ladder). Timeout on
 both = deeper block.
+
+> **Constrained Language Mode note:** if variant 1's first line errors with
+> "property setting is supported only on core types in this language mode",
+> the shell is in CLM — test the bare cmdlet instead (no login line):
+> `(Invoke-WebRequest "…same URL…" -UseBasicParsing).StatusCode`.
+> `200` means the same thing, and it is exactly how the pipeline's transport
+> operates.
 
 ### PowerShell transport (activate after T1 = 200)
 
@@ -441,11 +450,10 @@ every refresh is `.venv\Scripts\python run_all.py --publish` (or `refresh.bat`
   install command: it finishes instantly with "Requirement already satisfied"
   when nothing changed.
 - **Single-file updates** (when told only one or two files changed): no ZIP
-  needed. In a PowerShell window (line 1 = attach your Windows login to the
-  proxy, this window only — the same line as test T1; line 2 = the actual
-  download. If line 1 errors in your window, try line 2 alone):
+  needed. In a PowerShell window — plain cmdlet only, works under Constrained
+  Language Mode; do NOT prepend the old `[System.Net.WebRequest]…` login line
+  (CLM blocks it, and the download rides the system proxy without it):
   ```powershell
-  [System.Net.WebRequest]::DefaultWebProxy.Credentials = [System.Net.CredentialCache]::DefaultCredentials
   Invoke-WebRequest "https://raw.githubusercontent.com/leyixu26/celma-lgb/main/src/transport.py" -UseBasicParsing -OutFile "$env:USERPROFILE\celma-lgb\src\transport.py"
   ```
   (swap the path for whichever file changed — the raw URL is always
